@@ -1,6 +1,6 @@
-from classes.automatic_bot import AutomatiBot
+from classes.deal_bot import DealBot
 
 
-bot_play = AutomatiBot()
+deal_bot = DealBot()
 
-bot_play.see_free_games()
+deal_bot.see_game_historical_low()
