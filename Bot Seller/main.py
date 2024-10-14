@@ -1,4 +1,4 @@
-from classes.deal_bot import DealBot
+from classes.bot_functions import DealBot
 
 
 deal_bot = DealBot()
