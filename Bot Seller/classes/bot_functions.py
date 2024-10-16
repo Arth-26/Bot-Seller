@@ -23,11 +23,13 @@ class DealBot:
             price = game_item.find_element(By.CLASS_NAME, 'price-inner').text
             try:
                 discount = game_item.find_element(By.CLASS_NAME, 'discount').text
-                print(f'GAME {game_indice} --- {name}: {price} - DISCOUNT: {discount}')
+                game_list[name] = {price: discount}
             except:
-                print(f'GAME {game_indice} --- {name}: {price} - NOT DISCOUNT')
+                game_list[name] = {price: 'NOT DISCOUNT'}
             game_indice += 1
-        sleep(20)
+        
+        return game_list
+
 
 
     def see_free_games(self):
