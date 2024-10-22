@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from time import sleep
 
+
 browser_service = Service(ChromeDriverManager().install())
 
 browser = webdriver.Chrome(service=browser_service)
@@ -57,20 +58,26 @@ class DealBot:
         browser.get('https://gg.deals/deals/')
         sleep(0.5)
 
+        game_list = {}
         game_list_div = browser.find_element(By.CLASS_NAME, 'list-items')
         game_list_elements = game_list_div.find_elements(By.CLASS_NAME, 'game-item')
         game_indice = 1
 
         for game_item in game_list_elements:
             name = game_item.find_element(By.CLASS_NAME, 'game-info-title').get_attribute('data-title-auto-hide')
-            price = game_item.find_element(By.CLASS_NAME, 'price-inner').text
+            try:
+                price = game_item.find_element(By.CLASS_NAME, 'price-inner').text
+            except:
+                price = game_item.find_element(By.CLASS_NAME, 'unavailable-label').text
+
             try:
                 discount = game_item.find_element(By.CLASS_NAME, 'discount').text
-                print(f'GAME {game_indice} --- {name}: {price} - DISCOUNT: {discount}')
+                game_list[name] = {price: discount}
             except:
-                print(f'GAME {game_indice} --- {name}: {price} - NOT DISCOUNT')
+                game_list[name] = {price: 'NOT DISCOUNT'}
             game_indice += 1
-        sleep(20)
+        
+        return game_list
 
     def see_new_deals(self):
         browser.get('https://gg.deals/deals/new-deals/')
