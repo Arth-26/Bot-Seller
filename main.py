@@ -1,10 +1,10 @@
 from classes.bot_functions import DealBot
-from classes.web_scraping import ScrapignBot
+from classes.web_scraping import ScrapingBot
 
 
 deal_bot = DealBot()
 
-scraping_bot = ScrapignBot()
+scraping_bot = ScrapingBot()
 
-scraping_bot.see_popular_games()
+scraping_bot.see_game_historical_low()
 

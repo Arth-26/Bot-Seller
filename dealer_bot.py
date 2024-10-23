@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
 import os
-from bot_functions import DealBot
+from classes.bot_functions import DealBot
+from classes.web_scraping import ScrapingBot
 
 load_dotenv()
 
@@ -21,8 +22,8 @@ async def on_ready():
 async def popular_games(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
-    deal_bot = DealBot()
-    games = deal_bot.see_popular_games()
+    scraping_bot = ScrapingBot()
+    games = scraping_bot.see_popular_games()
     count = 0
     game_list = ''
 
@@ -42,8 +43,8 @@ async def popular_games(message):
 async def best_deals(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
-    deal_bot = DealBot()
-    games = deal_bot.see_best_deals()
+    scraping_bot = ScrapingBot()
+    games = scraping_bot.see_best_deals()
     count = 0
     game_list = ''
 
