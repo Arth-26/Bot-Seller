@@ -1,4 +1,4 @@
-from classes.bot_functions import DealBot
+from classes.selenium_functions import DealBot
 from classes.web_scraping import ScrapingBot
 
 
