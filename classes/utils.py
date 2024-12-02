@@ -33,3 +33,35 @@ def see_game_list(url):
                 storage_list[name] = {price: 'NOT DISCOUNT'}
             
         return storage_list
+
+def update_daily_deals(data_value): 
+     
+    path = 'https://gg.deals'
+
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 OPR/113.0.0.0'}
+    
+    request = requests.get(path, headers=headers)
+    parsed_html = BeautifulSoup(request.text, 'html.parser')
+
+    storage_list = {}
+
+    game_list_div = parsed_html.find_all(attrs={"data-preset-name": f"{data_value}"})
+    game_list = game_list_div.find('div', class_='list')
+    game_list_elements = game_list.find_all('div', class_='game-item')
+
+    for game_item in game_list_elements:
+        try:
+            name = game_item.find('a', class_='title').get_text()
+        except Exception as e:
+            print(e)
+        try:
+            price = game_item.find('span', class_='price-inner').get_text()
+        except:
+            price = game_item.find('span', class_='unavailable-label').get_text()
+        try:
+            discount = game_item.find('span', 'discount').get_text()
+            storage_list[name] = {price: discount}
+        except:
+            storage_list[name] = {price: 'NOT DISCOUNT'}
+            
+    return storage_list
