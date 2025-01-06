@@ -328,7 +328,13 @@ async def historical_low(message):
             break
 
     
+""" SCHEDULE TASKS """
+@tasks.loop(hours=24)
+async def daily_deals(message):
+    scraping_bot = ScrapingBot()
+    games = scraping_bot.see_game_historical_low()
 
+    
 """ NEWS FUNCTIONS """
 
 @bot.command(name='dailyNews')

@@ -1,6 +1,8 @@
-from .utils import see_game_list
+from .utils import see_game_list, update_daily_deals
 
 class ScrapingBot():
+
+    '''AQUI EU CHAMO AS FUNÇÕES DO UTILS PASSANDO AS URL COMO PARÂMENTRO'''
 
     def see_popular_games(self):
 
@@ -31,6 +33,15 @@ class ScrapingBot():
         url = 'https://gg.deals/deals/historical-lows/'
 
         return see_game_list(url)
+    
+    def daily_games_update(self):
+        sessions = ('New deals', 'Best deals', 'Historical lows', 'Ending Soon')
+
+        list_games = {}
+        for session in sessions:
+            list_games[f'{session}'] = update_daily_deals(session)
+
+        print(list_games)
 
 
 

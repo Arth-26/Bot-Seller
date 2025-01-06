@@ -23,8 +23,7 @@ from time import sleep
     name - NOME DO JOGO
     price - PREÇO DO JOGO
     discount - DESCONTO APLICADO AO PREÇO DO JOGO
-    '''
-    
+    '''    
 def see_game_list(url):
         
         path = url

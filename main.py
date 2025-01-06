@@ -6,5 +6,5 @@ deal_bot = DealBot()
 
 scraping_bot = ScrapingBot()
 
-scraping_bot.see_game_historical_low()
+scraping_bot.daily_games_update()
 
