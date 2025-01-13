@@ -8,22 +8,10 @@ from time import sleep
     POSSA SER REUTILIZADA VÁRIAS VEZES, ASSIM EVITANDO REPETIÇÃO DE CÓDIGO, E FACILITANDO POSSÍVEIS ATUALIZAÇÕES E MANUTENÇÕES'''
 
 
-''' ESSA É A FUNÇÃO QUE FARÁ A CONSULTA DOS JOGOS, ESSA FUNÇÃO RECEBE COMO PARAMETRO UMA URL QUE SERÁ PASSADA NA CHAMADA DESTA 
+''' 
+    ESSA É A FUNÇÃO QUE FARÁ A CONSULTA DOS JOGOS, ESSA FUNÇÃO RECEBE COMO PARAMETRO UMA URL QUE SERÁ PASSADA NA CHAMADA DESTA 
     FUNÇÃO NO ARQUIVO "web_scraping.py". 
-    
-    path - URL DO SITE QUE IREI REALIZAR A RASPAGEM DE DADOS
-    headers - UTILIZA OS HEADERS DO NAVEGADOR QUE SERÁ UTILIZADO NO SISTEMA PARA SIMULAR UMA REQUISIÇÃO FEITA POR UM NAVEGADOR REAL
-    request - A REQUISIÇÃO QUE FOI FEITA
-    parsed_html - CONVERTE O FORMATO DOS DADOS REQUISITADOS PARA HTML
-    storage_list - DICIONARIO ONDE IREI ARMAZENAR OS DADOS DOS JOGOS CONSULTADOS, ESSES DADOS SERÃO RETORNADOS NA FUNÇÃO E
-                    TRATADOS PELAS FUNÇÕES CONTRUIDAS UTILIZANDO A BIBLIOTECA DO DISCORD
-    game_list_div - A DIV ONDE FAREI A PESQUISA DOS JOGOS BASEADOS NA CLASSE DO SEU ELEMENTO HTML.
-    game_list_elements - TODOS OS ELEMENTOS PRESENTES NA DIV GAME_LIST, TAMBÉM REALIZO A BUSCA BASEADO NA CLASSE HTML 
-    game_item - UTILIZANDO O LAÇO DE REPETIÇÃO FOR, EU PERCORRO TODOS OS JOGOS CONSULTADOS E RETORNO DE UM POR UM
-    name - NOME DO JOGO
-    price - PREÇO DO JOGO
-    discount - DESCONTO APLICADO AO PREÇO DO JOGO
-    '''    
+'''    
 def see_game_list(url):
         
         path = url
@@ -33,13 +21,17 @@ def see_game_list(url):
         request = requests.get(path, headers=headers)
         parsed_html = BeautifulSoup(request.text, 'html.parser')
 
-        storage_list = {}
+        storage_list = {} # Dicionario que armazena os dados dos jogoS
 
-
+        # Buscando elementos html de acordo com suas classes
         game_list_div = parsed_html.find('div', class_='list-items')
         game_list_elements = game_list_div.find_all('div', class_='game-item')
 
+        # Para cada elemento referente a um jogo encontrado na consulta, irá buscar os seguintes dados:
+        # NOME, PREÇO, DESCONTO
         for game_item in game_list_elements:
+            # EM ALGUMAS SITUAÇÕES, OS ELEMENTOS VEM COM INFORMAÇÕES DIFERENTES, ENTÃO, 
+            # É FEITO O TRATAMENTO PARA EVITAR ERROS
             try:
                 name = game_item.find('a', class_='title-inner').get_text()
             except:
@@ -53,30 +45,17 @@ def see_game_list(url):
                 storage_list[name] = {price: discount}
             except:
                 storage_list[name] = {price: 'NOT DISCOUNT'}
-            
+        
+
+        # FORMATO DE RETORNO: lista = {nome: {preço: desconto}}
         return storage_list
 
 
-''' ESTA FUNÇÃO AINDA ESTÁ EM DESENVOLVIMENTO! 
-
-    ELA IRÁ CONSULTAR DIARIAMENTE O SITE GG.DEALS UTILIZANDO AS SCHEDULES TASKS DA BIBLIOTECA DO DISCORD E MOSTRARÁ
-    AS PROMOÇÕES EM DESTAQUE DAQUELE DIA
-    
-    data_value - A SESSÃO DE ONDE A FUNÇÃO DO DISCORD IRÁ CONSULTAR AS OFERTAS DIÁRIAS
-    path - URL DO SITE QUE IREI REALIZAR A RASPAGEM DE DADOS
-    headers - UTILIZA OS HEADERS DO NAVEGADOR QUE SERÁ UTILIZADO NO SISTEMA PARA SIMULAR UMA REQUISIÇÃO FEITA POR UM NAVEGADOR REAL
-    request - A REQUISIÇÃO QUE FOI FEITA
-    parsed_html - CONVERTE O FORMATO DOS DADOS REQUISITADOS PARA HTML
-    storage_list - DICIONARIO ONDE IREI ARMAZENAR OS DADOS DOS JOGOS CONSULTADOS, ESSES DADOS SERÃO RETORNADOS NA FUNÇÃO E
-                    TRATADOS PELAS FUNÇÕES CONTRUIDAS UTILIZANDO A BIBLIOTECA DO DISCORD
-    game_list_div - A DIV ONDE FAREI A PESQUISA DOS JOGOS BASEADOS NA CLASSE DO SEU ELEMENTO HTML.
-    game_list_elements - TODOS OS ELEMENTOS PRESENTES NA DIV GAME_LIST, TAMBÉM REALIZO A BUSCA BASEADO NA CLASSE HTML 
-    game_item - UTILIZANDO O LAÇO DE REPETIÇÃO FOR, EU PERCORRO TODOS OS JOGOS CONSULTADOS E RETORNO DE UM POR UM
-    name - NOME DO JOGO
-    price - PREÇO DO JOGO
-    discount - DESCONTO APLICADO AO PREÇO DO JOGO
-    '''
-def update_daily_deals(data_value): 
+''' 
+    ESSA FUNÇÃO IRÁ CONSULTAR DIARIAMENTE O SITE GG.DEALS UTILIZANDO AS SCHEDULES TASKS DA BIBLIOTECA DO DISCORD E MOSTRARÁ
+    AS PROMOÇÕES EM DESTAQUE EM UM INTERVALO DE TEMPO DEFINIDO NA CONSTRUÇÃO DA FUNÇÃO DO DISCORD
+'''
+def update_daily_deals(): 
      
     path = 'https://gg.deals'
 
@@ -87,23 +66,32 @@ def update_daily_deals(data_value):
 
     storage_list = {}
 
-    game_list_div = parsed_html.find_all(attrs={"data-preset-name": f"{data_value}"})
-    game_list = game_list_div.find('div', class_='list')
-    game_list_elements = game_list.find_all('div', class_='game-item')
+    # Dicionario contendo chaves que representa as sessões que serão usadas como paramentro na consulta
+    # Os valores de cada chave é uma mensagem que será encaminhada para o título do EMBED contruidos nas funções do discord
+    sessions = {'New deals': 'Novas Ofertas', 'Best deals': 'Melhores Ofertas', 'Historical lows': 'Baixa Histórica', 'Ending Soon': 'PROMOÇÕES ACABANDO!!'}
 
-    for game_item in game_list_elements:
-        try:
-            name = game_item.find('a', class_='title').get_text()
-        except Exception as e:
-            print(e)
-        try:
-            price = game_item.find('span', class_='price-inner').get_text()
-        except:
-            price = game_item.find('span', class_='unavailable-label').get_text()
-        try:
-            discount = game_item.find('span', 'discount').get_text()
-            storage_list[name] = {price: discount}
-        except:
-            storage_list[name] = {price: 'NOT DISCOUNT'}
-            
+    for session, message in sessions.items():
+        storage_list[f'{message}'] = {}
+        game_list_div = parsed_html.find(attrs={"data-preset-name": f"{session}"})
+        game_list = game_list_div.find('div', class_='list')
+        game_list_elements = game_list.find_all('div', class_='game-item')
+
+        for game_item in game_list_elements:
+            try:
+                name = game_item.find('a', class_='title').get_text(strip=True)
+            except Exception as e:
+                print(e)
+            try:
+                price = game_item.find('span', class_='price-inner').get_text(strip=True)
+            except:
+                price = game_item.find('span', class_='unavailable-label').get_text(strip=True)
+            try:
+                discount = game_item.find('span', 'discount').get_text(strip=True)
+                # Como a mensagem tem que ser exibida no titulo do EMBED do discord, estarei retornando dentro do dicionario
+                storage_list[f'{message}'][name] = {price: discount}
+            except:
+                storage_list[f'{message}'][name] = {price: 'NOT DISCOUNT'}
+                
+
+    # FORMATO DE RETORNO: lista = {sessão: {nome: {preço: desconto}}}
     return storage_list

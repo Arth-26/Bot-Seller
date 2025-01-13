@@ -1,26 +1,31 @@
 import discord
 from discord.ext import commands, tasks
-from dotenv import load_dotenv
 import os
 from classes.selenium_functions import DealBot
 from classes.web_scraping import ScrapingBot
 
-load_dotenv()
+token = str(os.getenv('BOT_TOKEN')) # TOKEN DE API DO DISCORD
 
-token = str(os.getenv('BOT_TOKEN'))
-
-
+# Variável de configuração usada para a comunicação com o gateway
 intents = discord.Intents.all()
 
+# Variável de eventos usada para realizar os comandos. Usada como tag nas funções que serão usadas no discord
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 """ DEALS FUNCTIONS """
 
+""" EVENTO REALIZANDO ASSIM QUE O BOT ESTÁ PRONTO PARA USO """
 @bot.event
 async def on_ready():
+    # Envia uma mensagem ao console para indicar que está pronto
     print('Estou funcionando! Pode começar a usar nossos comandos!')
 
+    # Chamada de eventos imediatos que precisam começar a funcionar assim que o bot está pronto
+    # Exemplo disso são as Schedules Tasks(tarefas agendadas)
+    daily_games_update.start()
+
+""" EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE JOGOS POPULARES """
 @bot.command(name='popularGames')
 async def populargames(message):
     await message.send('Espere um pouco, estamos processando!')
@@ -30,17 +35,18 @@ async def populargames(message):
     games = scraping_bot.see_popular_games()
 
     # Formatação dos jogos
+    # Cada página mostrará 10 jogos
     paginas = []
     pagina_atual = []
     for game, info in games.items():
         for price, discount in info.items():
-            display_message = f'{game}: {price} | {discount}'
+            display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista 
         pagina_atual.append(display_message)
         if len(pagina_atual) == 10:
             paginas.append(pagina_atual)
             pagina_atual = []
     if pagina_atual:
-        paginas.append(pagina_atual)  # Adiciona a última página, se tiver sobras
+        paginas.append(pagina_atual)  # Caso falte jogos para completar a ultima página, adiciona ela a lista como uma pagina incompleta mesmo
 
     # Criação do Embed inicial
     indice = 0
@@ -49,20 +55,23 @@ async def populargames(message):
         description='\n'.join(paginas[indice]),
         color=discord.Color.blue()
     )
-    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/games/)')
+    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/games/)') # Link para que o usuário possa acessar a página do site 
     mensagem = await message.send(embed=embed)
 
-    # Adiciona as reações para navegação
+    # Adiciona as reações para navegação de páginas
     for emoji in ['⬅️', '➡️']:
         await mensagem.add_reaction(emoji)
 
+    # Verifica se quem está tentando navegar nas páginas é quem iniciou a função
     def check(reaction, user):
         return user == message.author and str(reaction.emoji) in ['⬅️', '➡️'] and reaction.message.id == mensagem.id
 
     # Controle de Paginação
     while True:
         try:
+            # O bot espera por interações na navegação de página durante 1 minuto, após isso, ele encerra o evento
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # Verifica a ação e navega pelas páginas
             if reaction.emoji == '➡️' and indice < len(paginas) - 1:
                 indice += 1
             elif reaction.emoji == '⬅️' and indice > 0:
@@ -75,6 +84,7 @@ async def populargames(message):
             for emoji in ['⬅️', '➡️']:
                 await mensagem.add_reaction(emoji)
         except TimeoutError:
+            # Ao encerrar o evento de navegação de páginas, ele envia um EMBED ao servidor avisando o encerramento
             embed_error = discord.Embed(
                 title=f'Jogos Populates - Tempo Esgotado',
                 description='Para acessar a lista, execute o comando novamente',
@@ -83,25 +93,28 @@ async def populargames(message):
             await message.send(embed=embed_error)
             break
 
+""" EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE MELHORES OFERTAS """
 @bot.command(name='bestDeals')
 async def best_deals(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
+    # Simulação de scraping
     scraping_bot = ScrapingBot()
     games = scraping_bot.see_best_deals()
     
     # Formatação dos jogos
+    # Cada página mostrará 10 jogos
     paginas = []
     pagina_atual = []
     for game, info in games.items():
         for price, discount in info.items():
-            display_message = f'{game}: {price} | {discount}'
+            display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista 
         pagina_atual.append(display_message)
         if len(pagina_atual) == 10:
             paginas.append(pagina_atual)
             pagina_atual = []
     if pagina_atual:
-        paginas.append(pagina_atual)  # Adiciona a última página, se tiver sobras
+        paginas.append(pagina_atual)   # Caso falte jogos para completar a ultima página, adiciona ela a lista como uma pagina incompleta mesmo
 
     # Criação do Embed inicial
     indice = 0
@@ -110,20 +123,23 @@ async def best_deals(message):
         description='\n'.join(paginas[indice]),
         color=discord.Color.blue()
     )
-    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/)')
+    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/)') # Link para que o usuário possa acessar a página do site 
     mensagem = await message.send(embed=embed)
 
-    # Adiciona as reações para navegação
+    # Adiciona as reações para navegação de páginas
     for emoji in ['⬅️', '➡️']:
         await mensagem.add_reaction(emoji)
 
+    # Verifica se quem está tentando navegar nas páginas é quem iniciou a função
     def check(reaction, user):
         return user == message.author and str(reaction.emoji) in ['⬅️', '➡️'] and reaction.message.id == mensagem.id
 
     # Controle de Paginação
     while True:
         try:
+            # O bot espera por interações na navegação de página durante 1 minuto, após isso, ele encerra o evento
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # Verifica a ação e navega pelas páginas
             if reaction.emoji == '➡️' and indice < len(paginas) - 1:
                 indice += 1
             elif reaction.emoji == '⬅️' and indice > 0:
@@ -136,6 +152,7 @@ async def best_deals(message):
             for emoji in ['⬅️', '➡️']:
                 await mensagem.add_reaction(emoji)
         except TimeoutError:
+            # Ao encerrar o evento de navegação de páginas, ele envia um EMBED ao servidor avisando o encerramento
             embed_error = discord.Embed(
                 title=f'Melhores Promoções - Tempo Esgotado',
                 description='Para acessar a lista, execute o comando novamente',
@@ -144,25 +161,28 @@ async def best_deals(message):
             await message.send(embed=embed_error)
             break
 
+""" EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE JOGOS GRÁTIS """
 @bot.command(name='freeGames')
 async def free_games(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
+    # Simulação de scraping
     scraping_bot = ScrapingBot()
     games = scraping_bot.see_free_games()
     
     # Formatação dos jogos
+    # Cada página mostrará 10 jogos
     paginas = []
     pagina_atual = []
     for game, info in games.items():
         for price, discount in info.items():
-            display_message = f'{game}: {price} | {discount}'
+            display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista 
         pagina_atual.append(display_message)
         if len(pagina_atual) == 10:
             paginas.append(pagina_atual)
             pagina_atual = []
     if pagina_atual:
-        paginas.append(pagina_atual)  # Adiciona a última página, se tiver sobras
+        paginas.append(pagina_atual)   # Caso falte jogos para completar a ultima página, adiciona ela a lista como uma pagina incompleta mesmo
 
     # Criação do Embed inicial
     indice = 0
@@ -171,20 +191,23 @@ async def free_games(message):
         description='\n'.join(paginas[indice]),
         color=discord.Color.blue()
     )
-    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/games/?maxPrice=0&sort=wanted)')
+    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/games/?maxPrice=0&sort=wanted)') # Link para que o usuário possa acessar a página do site 
     mensagem = await message.send(embed=embed)
 
-    # Adiciona as reações para navegação
+    # Adiciona as reações para navegação de páginas
     for emoji in ['⬅️', '➡️']:
         await mensagem.add_reaction(emoji)
 
+    # Verifica se quem está tentando navegar nas páginas é quem iniciou a função
     def check(reaction, user):
         return user == message.author and str(reaction.emoji) in ['⬅️', '➡️'] and reaction.message.id == mensagem.id
 
     # Controle de Paginação
     while True:
         try:
+            # O bot espera por interações na navegação de página durante 1 minuto, após isso, ele encerra o evento
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # Verifica a ação e navega pelas páginas
             if reaction.emoji == '➡️' and indice < len(paginas) - 1:
                 indice += 1
             elif reaction.emoji == '⬅️' and indice > 0:
@@ -197,6 +220,7 @@ async def free_games(message):
             for emoji in ['⬅️', '➡️']:
                 await mensagem.add_reaction(emoji)
         except TimeoutError:
+            # Ao encerrar o evento de navegação de páginas, ele envia um EMBED ao servidor avisando o encerramento
             embed_error = discord.Embed(
                 title=f'Jogos Gratuitos - Tempo Esgotado',
                 description='Para acessar a lista, execute o comando novamente',
@@ -205,25 +229,28 @@ async def free_games(message):
             await message.send(embed=embed_error)
             break
 
+""" EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE NOVAS OFERTAS """
 @bot.command(name='newDeals')
 async def new_deals(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
+    # Simulação de scraping
     scraping_bot = ScrapingBot()
     games = scraping_bot.see_new_deals()
     
     # Formatação dos jogos
+    # Cada página mostrará 10 jogos
     paginas = []
     pagina_atual = []
     for game, info in games.items():
         for price, discount in info.items():
-            display_message = f'{game}: {price} | {discount}'
+            display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista 
         pagina_atual.append(display_message)
         if len(pagina_atual) == 10:
             paginas.append(pagina_atual)
             pagina_atual = []
     if pagina_atual:
-        paginas.append(pagina_atual)  # Adiciona a última página, se tiver sobras
+        paginas.append(pagina_atual)   # Caso falte jogos para completar a ultima página, adiciona ela a lista como uma pagina incompleta mesmo
 
     # Criação do Embed inicial
     indice = 0
@@ -232,20 +259,23 @@ async def new_deals(message):
         description='\n'.join(paginas[indice]),
         color=discord.Color.blue()
     )
-    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/new-deals/)')
+    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/new-deals/)') # Link para que o usuário possa acessar a página do site 
     mensagem = await message.send(embed=embed)
 
-    # Adiciona as reações para navegação
+    # Adiciona as reações para navegação de páginas
     for emoji in ['⬅️', '➡️']:
         await mensagem.add_reaction(emoji)
 
+    # Verifica se quem está tentando navegar nas páginas é quem iniciou a função
     def check(reaction, user):
         return user == message.author and str(reaction.emoji) in ['⬅️', '➡️'] and reaction.message.id == mensagem.id
 
     # Controle de Paginação
     while True:
         try:
+            # O bot espera por interações na navegação de página durante 1 minuto, após isso, ele encerra o evento
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # Verifica a ação e navega pelas páginas
             if reaction.emoji == '➡️' and indice < len(paginas) - 1:
                 indice += 1
             elif reaction.emoji == '⬅️' and indice > 0:
@@ -258,6 +288,7 @@ async def new_deals(message):
             for emoji in ['⬅️', '➡️']:
                 await mensagem.add_reaction(emoji)
         except TimeoutError:
+            # Ao encerrar o evento de navegação de páginas, ele envia um EMBED ao servidor avisando o encerramento
             embed_error = discord.Embed(
                 title=f'Novas Ofertas - Tempo Esgotado',
                 description='Para acessar a lista, execute o comando novamente',
@@ -266,25 +297,28 @@ async def new_deals(message):
             await message.send(embed=embed_error)
             break
 
+""" EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE OFERTAS COM MENORES PREÇOS HISTÓRICOS """
 @bot.command(name='historicalLow')
 async def historical_low(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
+    # Simulação de scraping
     scraping_bot = ScrapingBot()
     games = scraping_bot.see_game_historical_low()
     
     # Formatação dos jogos
+    # Cada página mostrará 10 jogos
     paginas = []
     pagina_atual = []
     for game, info in games.items():
         for price, discount in info.items():
-            display_message = f'{game}: {price} | {discount}'
+            display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista 
         pagina_atual.append(display_message)
         if len(pagina_atual) == 10:
             paginas.append(pagina_atual)
             pagina_atual = []
     if pagina_atual:
-        paginas.append(pagina_atual)  # Adiciona a última página, se tiver sobras
+        paginas.append(pagina_atual)   # Caso falte jogos para completar a ultima página, adiciona ela a lista como uma pagina incompleta mesmo
 
     # Criação do Embed inicial
     indice = 0
@@ -293,20 +327,23 @@ async def historical_low(message):
         description='\n'.join(paginas[indice]),
         color=discord.Color.blue()
     )
-    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/historical-lows/)')
+    embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals/deals/historical-lows/)') # Link para que o usuário possa acessar a página do site 
     mensagem = await message.send(embed=embed)
 
-    # Adiciona as reações para navegação
+    # Adiciona as reações para navegação de páginas
     for emoji in ['⬅️', '➡️']:
         await mensagem.add_reaction(emoji)
 
+    # Verifica se quem está tentando navegar nas páginas é quem iniciou a função
     def check(reaction, user):
         return user == message.author and str(reaction.emoji) in ['⬅️', '➡️'] and reaction.message.id == mensagem.id
 
     # Controle de Paginação
     while True:
         try:
+            # O bot espera por interações na navegação de página durante 1 minuto, após isso, ele encerra o evento
             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # Verifica a ação e navega pelas páginas
             if reaction.emoji == '➡️' and indice < len(paginas) - 1:
                 indice += 1
             elif reaction.emoji == '⬅️' and indice > 0:
@@ -319,6 +356,7 @@ async def historical_low(message):
             for emoji in ['⬅️', '➡️']:
                 await mensagem.add_reaction(emoji)
         except TimeoutError:
+            # Ao encerrar o evento de navegação de páginas, ele envia um EMBED ao servidor avisando o encerramento
             embed_error = discord.Embed(
                 title=f'Baixa Histórica - Tempo Esgotado',
                 description='Para acessar a lista, execute o comando novamente',
@@ -329,17 +367,33 @@ async def historical_low(message):
 
     
 """ SCHEDULE TASKS """
-@tasks.loop(hours=24)
-async def daily_deals(message):
+
+""" EVENTO QUE ENVIA PERIODICAMENTE LISTA COM OS PRINCIPAIS JOGOS DE CADA SESSÃO """
+@tasks.loop(hours=8)
+async def daily_games_update():
+
+    # Simulação de scraping
     scraping_bot = ScrapingBot()
-    games = scraping_bot.see_game_historical_low()
+    games = scraping_bot.daily_games_update()
 
+    # Seleciona o canal do discord onde serão enviadas os EMBEDS com a lista de jogos
+    channel = bot.get_channel(1296174387350868061)
     
-""" NEWS FUNCTIONS """
-
-@bot.command(name='dailyNews')
-async def daily_news(message):
-    pass
+    # Cada sessão de jogos acessada enviará um EMBED com 10 jogos na lista para o canal definido
+    for session, games_info in games.items():
+        pagina = []
+        for game, info in games_info.items():
+            for price, discount in info.items():
+                display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista
+            pagina.append(display_message)
+        
+        embed = discord.Embed(
+            title=f'{session}',
+            description='\n'.join(pagina),
+            color=discord.Color.blue()
+        )
+        embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals)') # Link para que o usuário possa acessar a página do site 
+        await channel.send(embed=embed)
 
 
 bot.run(token)

@@ -2,7 +2,8 @@ from .utils import see_game_list, update_daily_deals
 
 class ScrapingBot():
 
-    '''AQUI EU CHAMO AS FUNÇÕES DO UTILS PASSANDO AS URL COMO PARÂMENTRO'''
+    '''AQUI EU CHAMO AS FUNÇÕES DO UTILS PASSANDO AS URL COMO PARÂMENTRO. 
+    ESSAS FUNÇÕES SÃO USADAS COMO RETORNO DOS DADOS NAS FUNÇÕES CONSTRUIDAS PARA O DISCORD'''
 
     def see_popular_games(self):
 
@@ -35,13 +36,10 @@ class ScrapingBot():
         return see_game_list(url)
     
     def daily_games_update(self):
-        sessions = ('New deals', 'Best deals', 'Historical lows', 'Ending Soon')
 
-        list_games = {}
-        for session in sessions:
-            list_games[f'{session}'] = update_daily_deals(session)
+        list_games = update_daily_deals()
 
-        print(list_games)
+        return list_games
 
 
 
