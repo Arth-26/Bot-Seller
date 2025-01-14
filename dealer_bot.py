@@ -377,7 +377,7 @@ async def daily_games_update():
     games = scraping_bot.daily_games_update()
 
     # Seleciona o canal do discord onde serão enviadas os EMBEDS com a lista de jogos
-    channel = bot.get_channel(1296174387350868061)
+    channel = bot.get_channel(1213288147895718069)
     
     # Cada sessão de jogos acessada enviará um EMBED com 10 jogos na lista para o canal definido
     for session, games_info in games.items():
