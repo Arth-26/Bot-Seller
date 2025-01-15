@@ -1,5 +1,5 @@
 # BOT-SELLER: Your promotions consultant!
-![DBbanner](media\DB_banner.png)
+![DBbanner](media/DB_banner.png)
 
 ## Visão Geral
 O ***Dealer Bot*** é um projeto pensado na comunidade gamer que quer ficar por dentro de todas as promoções de todas as plataformas e lojas digitais em um único lugar.

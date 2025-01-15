@@ -12,8 +12,32 @@ intents = discord.Intents.all()
 # Variável de eventos usada para realizar os comandos. Usada como tag nas funções que serão usadas no discord
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+""" EVENTOS DE INICIAÇÃO """
 
-""" DEALS FUNCTIONS """
+""" EVENTO ATIVADOS QUANDO O BOT ENTRA NO SERVIDOR """
+@bot.event
+async def on_guild_join(guild):
+    # Cria um canal de texto no servidor
+    channel = await guild.create_text_channel('promoções')
+
+    # Altera as permissões para o canal
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(send_messages=False, add_reactions=True),  # Remover permissão de envio de mensagens, mas permitir reações
+        bot.user: discord.PermissionOverwrite(send_messages=True),  # Permitir que o bot envie mensagens
+    }
+    
+    # Permissões para o dono do servidor (ele pode enviar mensagens)
+    owner = guild.owner
+    if owner:
+        overwrites[owner] = discord.PermissionOverwrite(send_messages=True, add_reactions=True)  # Permite que o dono envie mensagens e reaja
+
+    # Atualizar permissões do canal
+    await channel.edit(overwrites=overwrites)
+    
+
+    canal_criado_id = channel.id # ID do canal criado para ser usado na função de atualizações periodicas de promoções
+    daily_games_update.start(canal_criado_id)
+    print(f'Canal {channel.name} criado com sucesso no servidor {guild.name}')
 
 """ EVENTO REALIZANDO ASSIM QUE O BOT ESTÁ PRONTO PARA USO """
 @bot.event
@@ -21,9 +45,8 @@ async def on_ready():
     # Envia uma mensagem ao console para indicar que está pronto
     print('Estou funcionando! Pode começar a usar nossos comandos!')
 
-    # Chamada de eventos imediatos que precisam começar a funcionar assim que o bot está pronto
-    # Exemplo disso são as Schedules Tasks(tarefas agendadas)
-    daily_games_update.start()
+
+""" DEALS FUNCTIONS """
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE JOGOS POPULARES """
 @bot.command(name='popularGames')
@@ -370,14 +393,14 @@ async def historical_low(message):
 
 """ EVENTO QUE ENVIA PERIODICAMENTE LISTA COM OS PRINCIPAIS JOGOS DE CADA SESSÃO """
 @tasks.loop(hours=8)
-async def daily_games_update():
+async def daily_games_update(canal):
 
     # Simulação de scraping
     scraping_bot = ScrapingBot()
     games = scraping_bot.daily_games_update()
 
     # Seleciona o canal do discord onde serão enviadas os EMBEDS com a lista de jogos
-    channel = bot.get_channel(1213288147895718069)
+    channel = bot.get_channel(canal)
     
     # Cada sessão de jogos acessada enviará um EMBED com 10 jogos na lista para o canal definido
     for session, games_info in games.items():
