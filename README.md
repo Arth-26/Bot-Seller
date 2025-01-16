@@ -49,7 +49,7 @@ Caso seja Linux ou MacOs, use:
 
 ### Convidando o BOT para o seu servidor
 
-Para convidar o bot para o seu servidor e utilizado, [`Clique aqui!`](https://discord.com/oauth2/authorize?client_id=1295436747437772812&permissions=1717432264162385&integration_type=0&scope=bot):
+Para convidar o bot para o seu servidor e utilizado, [`Clique aqui!`](https://discord.com/oauth2/authorize?client_id=1295436747437772812&permissions=1719631824813297&integration_type=0&scope=bot):
 
 
 ## Redes
