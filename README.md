@@ -1,4 +1,4 @@
-# BOT-SELLER: Your promotions consultant!
+# BOT-SELLER: Seu consultor de promoções!
 ![DBbanner](media/DB_banner.png)
 
 ## Visão Geral
