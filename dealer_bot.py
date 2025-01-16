@@ -11,6 +11,7 @@ intents = discord.Intents.all()
 
 # Variável de eventos usada para realizar os comandos. Usada como tag nas funções que serão usadas no discord
 bot = commands.Bot(command_prefix="!", intents=intents)
+tasks_by_guild = {}  # Dicionário para armazenar tarefas por ID do servidor, assim, verifica se a mesma tarefa não será iniciada mais de uma vez
 
 """ EVENTOS DE INICIAÇÃO """
 
@@ -18,7 +19,11 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 @bot.event
 async def on_guild_join(guild):
     # Cria um canal de texto no servidor
-    channel = await guild.create_text_channel('promoções')
+
+    channel = discord.utils.get(guild.text_channels, name="promoções")
+    if not channel:
+        channel = await guild.create_text_channel('promoções')
+    
 
     # Altera as permissões para o canal
     overwrites = {
@@ -34,22 +39,60 @@ async def on_guild_join(guild):
     # Atualizar permissões do canal
     await channel.edit(overwrites=overwrites)
     
-
-    canal_criado_id = channel.id # ID do canal criado para ser usado na função de atualizações periodicas de promoções
-    daily_games_update.start(canal_criado_id)
+    # Inicia as tasks diárias usando o id do servidor e do canal onde será enviada as mensagens do evento
+    start_daily_task(guild.id, channel.id)
     print(f'Canal {channel.name} criado com sucesso no servidor {guild.name}')
 
 """ EVENTO REALIZANDO ASSIM QUE O BOT ESTÁ PRONTO PARA USO """
 @bot.event
 async def on_ready():
+
+    # Mostra o comando de ajuda no perfil do bot
+    activity = discord.Game(name="For more info: !help_me")
+    await bot.change_presence(activity=activity)
+
     # Envia uma mensagem ao console para indicar que está pronto
     print('Estou funcionando! Pode começar a usar nossos comandos!')
+
+    # Verifica todos os servidores que o bot está presente e reativa a função de atualiações diárias junto com o bot
+    for guild in bot.guilds:
+        promo_channel = discord.utils.get(guild.text_channels, name="promoções")
+        if promo_channel:
+            try:
+                start_daily_task(guild.id, promo_channel.id)
+            except:
+                print('Já está rodando neste servidor')
+
+
+""" FUNÇÕES BASE """
+
+@bot.command(name="help_me", description="Mostra a lista de comandos.")
+async def command_list(message):
+    comandos = {
+        '!popular_games': 'Mostra a lista de jogos populares em promoção.', 
+        '!best_deals': 'Mostra a lista das melhores promoções do dia.', 
+        '!free_games': 'Mostra a lista de jogos que são ou estão gratuitos.', 
+        '!new_deals': 'Mostra a lista de novas promoções.', 
+        '!historical_low': 'Mostra a lista de jogos com preços com baixa histórica.'
+        }
+    
+    # Construir a string com os comandos e descrições
+    descricao_comandos = '\n'.join([f'**{comando}** - {descricao}' for comando, descricao in comandos.items()])
+    
+    embed = discord.Embed(
+        title='LISTA DE COMANDOS',
+        description=descricao_comandos,
+        color=discord.Color.blue()
+    )
+
+    mensagem = await message.send(embed=embed)
 
 
 """ DEALS FUNCTIONS """
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE JOGOS POPULARES """
-@bot.command(name='popularGames')
+
+@bot.command(name="popular_games", description="Mostra a lista de jogos populares em promoção.")
 async def populargames(message):
     await message.send('Espere um pouco, estamos processando!')
 
@@ -117,7 +160,7 @@ async def populargames(message):
             break
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE MELHORES OFERTAS """
-@bot.command(name='bestDeals')
+@bot.command(name="best_deals", description="Mostra a lista das melhores promoções do dia.")
 async def best_deals(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
@@ -185,7 +228,7 @@ async def best_deals(message):
             break
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE JOGOS GRÁTIS """
-@bot.command(name='freeGames')
+@bot.command(name="free_games", description="Mostra a lista de jogos que são ou estão gratuitos.")
 async def free_games(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
@@ -253,7 +296,7 @@ async def free_games(message):
             break
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE NOVAS OFERTAS """
-@bot.command(name='newDeals')
+@bot.command(name="new_deals", description="Mostra a lista de novas promoções.")
 async def new_deals(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
@@ -321,7 +364,7 @@ async def new_deals(message):
             break
 
 """ EVENTO QUE BUSCA OS JOGOS EM DESTAQUE DA SESSÃO DE OFERTAS COM MENORES PREÇOS HISTÓRICOS """
-@bot.command(name='historicalLow')
+@bot.command(name="historical_low", description="Mostra a lista de jogos com preços com baixa histórica.")
 async def historical_low(message):
     await message.channel.send('Espere um pouco, estamos processando!')
 
@@ -391,32 +434,47 @@ async def historical_low(message):
     
 """ SCHEDULE TASKS """
 
+
+""" ANTES, A FUNÇÃO daily_games_update() ERA CHAMADA INDIVIDUALMENTE, SEM A NECESSIDADE DE UMA FUNÇÃO PAI
+PORÉM, A TAG @tasks.loop DO DISCORD TEM A LIMITAÇÃO DE NÃO CONSEGUIR IDENTIFICAR QUE ESTÁ SENDO INICIADA EM SERVIDORES
+DIFERENTES, ELA É INICIADA EM UM ESCOPO GLOBAL DO SISTEMA, ENTÃO, LIMITEI O ESCOPO DELA DENTRO DA FUNÇÃO start_daily_task().
+A FUNÇÃO POSSUI UMA VERIFICAÇÃO PARA EVITAR QUE SEJA ATIVADA DUAS VEZES NO MESMO SERVIDOR E EVITAR ERROS."""
+
 """ EVENTO QUE ENVIA PERIODICAMENTE LISTA COM OS PRINCIPAIS JOGOS DE CADA SESSÃO """
-@tasks.loop(hours=8)
-async def daily_games_update(canal):
-
-    # Simulação de scraping
-    scraping_bot = ScrapingBot()
-    games = scraping_bot.daily_games_update()
-
-    # Seleciona o canal do discord onde serão enviadas os EMBEDS com a lista de jogos
-    channel = bot.get_channel(canal)
+# Função para criar uma tarefa de atualização para um canal
+def start_daily_task(guild_id, channel_id):
+    if guild_id in tasks_by_guild:  # Verifica se a tarefa já existe
+        print(f"Tarefa já em execução para o servidor {guild_id}")
+        return
     
-    # Cada sessão de jogos acessada enviará um EMBED com 10 jogos na lista para o canal definido
-    for session, games_info in games.items():
-        pagina = []
-        for game, info in games_info.items():
-            for price, discount in info.items():
-                display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista
-            pagina.append(display_message)
-        
-        embed = discord.Embed(
-            title=f'{session}',
-            description='\n'.join(pagina),
-            color=discord.Color.blue()
-        )
-        embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals)') # Link para que o usuário possa acessar a página do site 
-        await channel.send(embed=embed)
+    @tasks.loop(hours=8)
+    async def daily_games_update():
 
+        # Simulação de scraping
+        scraping_bot = ScrapingBot()
+        games = scraping_bot.daily_games_update()
+
+        # Seleciona o canal do discord onde serão enviadas os EMBEDS com a lista de jogos
+        channel = bot.get_channel(channel_id)
+        
+        # Cada sessão de jogos acessada enviará um EMBED com 10 jogos na lista para o canal definido
+        for session, games_info in games.items():
+            pagina = []
+            for game, info in games_info.items():
+                for price, discount in info.items():
+                    display_message = f'{game}: {price} | {discount}' # Formatação das informações dos jogos exibido na lista
+                pagina.append(display_message)
+            
+            embed = discord.Embed(
+                title=f'{session}',
+                description='\n'.join(pagina),
+                color=discord.Color.blue()
+            )
+            embed.add_field(name='Mais informações:', value='[Clique aqui](https://gg.deals)') # Link para que o usuário possa acessar a página do site 
+            await channel.send(embed=embed)
+    
+    # Inicia a task
+    daily_games_update.start()
+    tasks_by_guild[guild_id] = daily_games_update  # Salva a tarefa no dicionário para evitar iniciar novamente no mesmo servidor
 
 bot.run(token)
