@@ -45,7 +45,7 @@ Caso seja Linux ou MacOs, use:
 
 **5. Agora execute o bot:**
 
-`python deater_bot.py`
+`python dealer_bot.py`
 
 ### Convidando o BOT para o seu servidor
 
